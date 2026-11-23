@@ -1,5 +1,5 @@
 ---
-name: claude-audit
+name: claude-usage-audit
 description: Audit how a person works with Claude Code (CLI or desktop app). Computes numbers from their local transcripts, scores eight areas against a fixed rubric, places them on an S–F scale and gives three concrete steps to improve. Works on your own usage or, with their consent, on someone else's (a teammate, a client), from their machine or from data they send. Use when someone says "audit my Claude usage", "how good am I at working with Claude", "review how I prompt", "where am I on the scale", "audit my team's Claude usage", "repeat the audit", or asks the same in any other language. Not for checking one finished task and not for code review.
 ---
 
