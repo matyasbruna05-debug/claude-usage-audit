@@ -1,0 +1,19 @@
+{
+  "_readme": "Signal words per language. All entries are matched case-insensitively. 'vague' entries are plain words or phrases (matched on word boundaries); every other list holds regular-expression fragments. To add a language, copy the 'en' block, translate it, and open a pull request. These lists are deliberately coarse: they produce candidates for the auditor to verify, never findings on their own.",
+  "en": {
+    "vague": ["apple", "be creative", "cool", "nice", "better", "modern", "sexy", "premium", "professional", "bulletproof", "world class", "world-class", "polished", "wow", "sleek", "beautiful", "amazing", "not ai", "like a pro"],
+    "fix": ["\\bfix\\w*", "\\bbroken\\b", "\\bstill\\b", "\\bagain\\b", "doesn.?t work", "not working", "\\bwrong\\b", "\\brevert\\b", "\\bundo\\b", "\\bbug\\b"],
+    "status_ping": ["update", "status", "done", "ready", "progress", "how long", "how is it going", "are you done", "eta"],
+    "done_criteria": ["definition of done", "done when", "acceptance", "\\bverify\\b", "\\btest it\\b", "make sure", "\\bprove\\b", "\\bproof\\b", "screenshot", "\\bcheck that\\b", "run the tests"],
+    "visual": ["design", "\\bui\\b", "\\bux\\b", "layout", "\\bfont", "colou?r", "animation", "\\bstyle", "\\blook", "logo", "landing", "typograph", "spacing"],
+    "approval": ["yes", "yep", "yeah", "ok", "okay", "go", "go ahead", "do it", "continue", "proceed", "start", "start building", "sounds good", "lgtm", "approved", "ship it", "next", "keep going", "sure", "thanks", "thank you", "great", "perfect"]
+  },
+  "cs": {
+    "vague": ["hezčí", "hezci", "lepší", "lepsi", "líp", "lip", "profi", "moderní", "moderni", "kreativ", "pořádně", "poradne", "ať to není ai", "at to neni ai", "luxusní", "luxusni", "top"],
+    "fix": ["\\boprav\\w*", "\\bnefunguj\\w*", "\\bnejde\\b", "\\brozbit\\w*", "\\bšpatně\\b", "\\bspatne\\b", "\\bpořád\\b", "\\bporad\\b", "\\bznovu\\b", "\\bzase\\b", "\\bvrať\\b", "\\bvrat\\b", "\\bchyba\\b"],
+    "status_ping": ["hotovo", "jak to vypad[áa]", "za jak dlouho", "už", "uz", "kde to je", "jak jsi na tom", "jak na tom jsme", "jak to jde"],
+    "done_criteria": ["hotovo znamen", "hotovo je", "akceptační", "kritéri", "\\bověř", "\\bover\\b", "otestuj", "zkontroluj", "checkni", "důkaz", "dukaz", "ukaž mi", "ukaz mi"],
+    "visual": ["vzhled", "vizu[aá]l", "barv", "písm", "pism", "animac", "hezk", "\\bstyl", "web\\w* vypad"],
+    "approval": ["ano", "jo", "jasně", "jasne", "dobře", "dobre", "pokračuj", "pokracuj", "začni", "zacni", "začni stavět", "zacni stavet", "jdi do toho", "udělej to", "udelej to", "super", "díky", "diky", "dál", "dal", "souhlas", "přihlášen", "prihlasen", "hotovo"]
+  }
+}
