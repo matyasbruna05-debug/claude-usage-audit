@@ -1,11 +1,11 @@
 # Report template
 
-Save as `claude-audit-<name>-<YYYY-MM-DD>.md`. Write in the person's language, plainly, without jargon (explain a term such as "subagent" in one sentence the first time). The whole report fits two to three screens; someone who reads only the first section must know the level and what to do.
+Save as `claude-audit-<name>-<YYYY-MM-DD>.md`. Write in the person's language, plainly, without jargon (explain a term such as "subagent" in one sentence the first time). Aim for two to three screens, about 900 words: with more than four findings, write the lower ones as one line each. Someone who reads only the first section must know the level and what to do.
 
 ```markdown
 # Claude usage audit: <name>
-<date> · <N> sessions, <N> prompts, <from>–<to> · confidence: <low/medium/good>
-Auditor: <model> · Reviewer: <model, or "none">
+<date> · <N> sessions, <N> prompts, <from>–<to> · sample size: <low/medium/good>
+Auditor: <model> · Reviewer: <model, "pending" while a draft, or "none">
 
 ## Result
 **Level <X>** (<total>/32). <One sentence why.>
@@ -43,7 +43,8 @@ Again in <2–4> weeks. Track: <3–5 numbers with today's value and a target>.
 
 Rules for the content:
 - Every claim has a number or an example. Mark interpretation as interpretation ("it looks as if…").
-- Take examples from `samples` in the data; they are already masked. Put no secrets, e-mail addresses, phone numbers or third persons' names in the report.
+- Take examples from `samples` in the data where you can; they are already masked. A quote or number taken from a transcript is allowed but must be marked "from the transcripts, not checked by the reviewer" and masked by hand. Put no secrets, e-mail addresses, phone numbers or third persons' names in the report.
 - Judge behaviour, not the person. No flattery, no put-downs.
 - A recommendation is a change of behaviour, not a purchase or an installation. Suggest a new skill or rule only where the data shows the same mistake repeating.
-- On a repeat audit add a "last time" column to the table and a "What changed" section.
+- On a repeat audit add a "last time" column to the table and a "What changed" section. Only an earlier `audit-data.json` from this collector counts as "last time"; an older assessment made another way is context, not a baseline.
+- Targets in "Next measurement" must be reachable and must come from a field in the data, not from a number you made up.

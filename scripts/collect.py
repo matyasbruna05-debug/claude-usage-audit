@@ -97,6 +97,9 @@ REF = re.compile(r'(https?://\S+|(?:~|\.|/|[A-Za-z]:\\)?[\w./\\-]+\.(?:png|jpe?g
                  r'|\[Image|@[\w./-]+\.\w+)', re.I)
 TEMP = re.compile(r'(scratch|[/\\]te?mp[/\\]|[/\\]private[/\\]tmp|[/\\]var[/\\]folders|AppData[/\\]Local[/\\]Temp|[/\\]Downloads\b|[/\\]Desktop\b)', re.I)
 
+PASTED = re.compile(r'<pasted_content\b.*?</pasted_content[^>]*>', re.S)
+URL = re.compile(r'https?://\S+')
+
 def clean(t):
     return re.sub(r'<system-reminder>.*?</system-reminder>', '', t, flags=re.S).strip()
 
@@ -106,7 +109,11 @@ def tilde(p):
 def redact(t):
     t = SECRET.sub('[SECRET]', t)
     t = MAIL.sub('[EMAIL]', t)
-    t = PHONE.sub('[PHONE]', t)
+    parts, last = [], 0
+    for m in URL.finditer(t):  # digits inside links are ids, not phone numbers
+        parts += [PHONE.sub('[PHONE]', t[last:m.start()]), m.group(0)]
+        last = m.end()
+    t = ''.join(parts) + PHONE.sub('[PHONE]', t[last:])
     if USER_HOME not in ('', '/'):
         t = t.replace(USER_HOME, '~')
     return t
@@ -122,13 +129,13 @@ def is_temp(p):
 prompts, sessions = [], []
 models, tokens_out, tokens_in = collections.Counter(), collections.Counter(), collections.Counter()
 tools, skills, auto, perm_modes, slash = (collections.Counter() for _ in range(5))
-seen_msg = set()
-secret_prompts = interrupts = bad_lines = 0
+seen_msg, seen_user = set(), set()
+secret_prompts = interrupts = bad_lines = duplicates = 0
 first_ts = last_ts = None
 
 for f in files:
-    s = {'id': os.path.basename(f)[:8], 'cwd': None, 'moved_to': None, 'prompts': 0, 'tools': 0, 'agents': 0,
-         'plan': False, 'from': None, 'to': None, 'fixes': 0}
+    s = {'id': os.path.splitext(os.path.basename(f))[0], 'cwd': None, 'moved_to': None, 'prompts': 0, 'tools': 0, 'agents': 0,
+         'plan': False, 'from': None, 'to': None, 'fixes': 0, 'compactions': 0}
     sp = []
     try:
         fh = open(f, encoding='utf-8', errors='ignore')
@@ -192,6 +199,12 @@ for f in files:
                     or d.get('turnOrigin') in ('host_synthetic', 'scheduled', 'task_notification')):
                 auto[d.get('turnOrigin') or kind or 'system'] += 1  # automated message, not a human prompt
                 continue
+            uid = d.get('uuid')
+            if uid:
+                if uid in seen_user:  # same record copied into a forked or resumed session file
+                    duplicates += 1
+                    continue
+                seen_user.add(uid)
             s['cwd'] = s['cwd'] or d.get('cwd')
             if d.get('permissionMode'):
                 perm_modes[d['permissionMode']] += 1
@@ -218,12 +231,16 @@ for f in files:
             if cm:
                 slash[cm.group(1)] += 1
                 continue
-            if t.startswith('<') or t.startswith('This session is being continued') or t.startswith('Caveat'):
+            if t.startswith('This session is being continued'):
+                s['compactions'] += 1  # the context filled up and was summarised
                 continue
+            if (t.startswith('<') and not t.startswith('<pasted_content')) or t.startswith('Caveat'):
+                continue
+            own = PASTED.sub(' ', t).strip() or t  # the person's own words, without pasted material
             p = {'text': t, 'len': len(t), 'img': img, 'ref': bool(REF.search(t)) or img, 'secret': bool(SECRET.search(t)),
-                 'vague': [w for w in VAGUE if word_hit(t, w)], 'fix': bool(sp) and bool(FIX.search(t)),
-                 'ping': len(t) <= 40 and bool(PING.match(t)),
-                 'done': bool(DONE.search(t)), 'visual': bool(VISUAL.search(t)),
+                 'vague': [w for w in VAGUE if word_hit(own, w)], 'fix': bool(sp) and bool(FIX.search(own)),
+                 'ping': len(t) <= 40 and bool(PING.match(t)), 'pasted': own != t,
+                 'done': bool(DONE.search(own)), 'visual': bool(VISUAL.search(own)),
                  'approval': len(t) <= 60 and bool(APPROVAL.match(t)), 'tools_after': 0, 'session': s['id'], '_base': s['tools']}
             secret_prompts += p['secret']
             s['fixes'] += p['fix']
@@ -286,6 +303,13 @@ except (OSError, ValueError, AttributeError):
     pass
 
 # ---- numbers ------------------------------------------------------------------------------
+def days(s):
+    try:
+        a_, b_ = (datetime.fromisoformat(str(x).replace('Z', '+00:00')) for x in (s['from'], s['to']))
+        return (b_.date() - a_.date()).days + 1
+    except (ValueError, TypeError):
+        return None
+
 def pct(x, of):
     return round(100 * x / of, 1) if of else 0
 
@@ -298,18 +322,30 @@ vague_c = collections.Counter(w for p in real for w in p['vague'])
 tot_resp = sum(models.values())
 ns = len(sessions)
 
+used = set()
+
 def sample(ps, k, why):
-    return [{'why': why, 'session': p['session'], 'tool_calls_after': p['tools_after'],
-             'text': redact(p['text'][:320]).replace('\n', ' / ')} for p in ps[:k]]
+    res = []
+    for p in ps:
+        key = p['text'][:200]
+        if key in used:
+            continue
+        used.add(key)
+        res.append({'why': why, 'session': p['session'], 'tool_calls_after': p['tools_after'], 'has_pasted_content': p['pasted'],
+                    'text': redact(p['text'][:320]).replace('\n', ' / ')})
+        if len(res) >= k:
+            break
+    return res
 
 samples = []
 if a.samples > 0:
     k = max(3, a.samples // 6)
-    samples = (sample(sorted([p for p in real if p['vague']], key=lambda p: -p['tools_after']), k, 'vague word')
+    samples = (sample([p for p in real if p['secret']], 3, 'possible secret (masked)')
+               + sample(sorted([p for p in real if p['vague']], key=lambda p: -p['tools_after']), k, 'vague word')
                + sample(sorted([p for p in big if p['len'] < 60], key=lambda p: -p['tools_after']), k, 'short prompt, big task')
                + sample([p for p in real if p['fix']], k, 'possible correction round')
                + sample([p for p in real if p['ping']], max(2, k // 2), 'status ping')
-               + sample(sorted(real, key=lambda p: -p['len']), max(2, k // 2), 'longest prompt')
+               + sample(sorted([p for p in real if not p['pasted']], key=lambda p: -p['len']), max(2, k // 2), 'longest prompt')
                + sample(sorted([p for p in real if p['done'] or (p['ref'] and p['len'] > 150)], key=lambda p: -p['len']), k,
                         'possible good practice (criteria, proof, reference)'))
 
@@ -317,7 +353,19 @@ out = {
     'schema': 1, 'created': datetime.now().isoformat(timespec='minutes'), 'source': tilde(root),
     'period_days': a.days or 'all', 'languages': langs,
     'scope': {'sessions': ns, 'prompts': n, 'from': first_ts, 'to': last_ts, 'unreadable_lines': bad_lines,
-              'confidence': 'low (under 50 prompts)' if n < 50 else 'medium (50-200 prompts)' if n < 200 else 'good (200+ prompts)'},
+              'transcript_files': len(files), 'files_without_human_prompts': len(files) - ns,
+              'duplicate_records_skipped': duplicates,
+              'sample_size': 'low (under 50 prompts)' if n < 50 else 'medium (50-200 prompts)' if n < 200 else 'good (200+ prompts)',
+              'note': 'sample_size is only about how many prompts there are. Word-list signals (vague words, correction rounds, '
+                      'visual prompts, approvals) are candidates and must be confirmed on samples before use.'},
+    'session_shape': {'median_prompts_per_session': statistics.median([s['prompts'] for s in sessions]),
+                      'sessions_over_50_prompts': sum(s['prompts'] > 50 for s in sessions),
+                      'sessions_spanning_3plus_days': sum((days(s) or 0) >= 3 for s in sessions),
+                      'sessions_with_context_compaction': sum(s['compactions'] > 0 for s in sessions),
+                      'context_compactions': sum(s['compactions'] for s in sessions),
+                      'longest': [{'session': s['id'], 'prompts': s['prompts'], 'days': days(s), 'tool_calls': s['tools'],
+                                   'context_compactions': s['compactions']}
+                                  for s in sorted(sessions, key=lambda s: -s['prompts'])[:5]]},
     'prompting': {'approvals_excluded': n - len(real), 'median_chars': statistics.median(L), 'mean_chars': round(statistics.mean(L)),
                   'under_40_chars_pct': pct(sum(x < 40 for x in L), len(real)), 'over_500_chars_pct': pct(sum(x > 500 for x in L), len(real)),
                   'with_attachment_or_link_pct': pct(sum(p['ref'] for p in real), len(real)),
@@ -347,7 +395,7 @@ with open(a.out, 'w', encoding='utf-8') as fh:
     json.dump(out, fh, ensure_ascii=False, indent=1)
 
 z, o = out['prompting'], out['verification']
-print(f"Audit data: {ns} sessions, {n} prompts, {str(first_ts)[:10]} to {str(last_ts)[:10]}. Confidence: {out['scope']['confidence']}.")
+print(f"Audit data: {ns} sessions, {n} prompts, {str(first_ts)[:10]} to {str(last_ts)[:10]}. Sample size: {out['scope']['sample_size']}.")
 print(f"Prompting: median {z['median_chars']} chars, {z['under_40_chars_pct']}% under 40 chars, "
       f"{z['with_attachment_or_link_pct']}% with attachment/link, vague word in {z['with_vague_word_pct']}% "
       f"({z['approvals_excluded']} plain approvals excluded).")
@@ -358,4 +406,7 @@ print(f"Tools: skills {sum(skills.values())}x, plan mode in {out['tools']['sessi
       f"subagents in {out['tools']['sessions_with_subagent']}.")
 print(f"Projects: {len(proj)} folders, {out['projects']['sessions_left_in_temp_pct']}% of sessions left in a temporary folder. "
       f"Secrets pasted into prompts: {secret_prompts}.")
+sh = out['session_shape']
+print(f"Sessions: median {sh['median_prompts_per_session']} prompts, {sh['sessions_over_50_prompts']} over 50 prompts, "
+      f"{sh['sessions_with_context_compaction']} hit a context compaction. Files without human prompts: {len(files) - ns}.")
 print(f"Saved: {os.path.abspath(a.out)} ({len(samples)} samples)")

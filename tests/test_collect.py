@@ -94,6 +94,7 @@ class CollectTest(unittest.TestCase):
     def test_runs(self):
         self.assertEqual(self.res.returncode, 0, self.res.stderr)
         self.assertIn('Audit data: 2 sessions, 7 prompts', self.res.stdout)
+        self.assertEqual(self.d['scope']['transcript_files'], 2)
 
     def test_only_human_prompts_count(self):
         self.assertEqual(self.d['scope']['prompts'], 7)
@@ -152,6 +153,32 @@ class CollectTest(unittest.TestCase):
         for leaked in ('sk-abcdefghijklmnopqrstuvwx', 'jane@example.com', '123 456 789'):
             self.assertNotIn(leaked, blob)
         self.assertIn('[SECRET]', blob)
+
+    def test_secret_sample_and_full_session_id(self):
+        sec = [x for x in self.d['samples'] if x['why'].startswith('possible secret')]
+        self.assertEqual(len(sec), 1)
+        self.assertEqual(sec[0]['session'], 'aaaaaaaa--work-shop')
+
+    def test_session_shape_dedupe_and_pasted_content(self):
+        home = os.path.join(self.tmp.name, 'shape')
+        os.makedirs(os.path.join(home, 'projects', '-work-x'))
+        recs = [user('build the importer', uuid='u1'),
+                assistant('s1', 'model-big', ['Edit']),
+                user('This session is being continued from a previous conversation', uuid='u2'),
+                user('<pasted_content id="1">make it better and modern, call 123456789012</pasted_content> make sure you summarise this link '
+                     'https://example.com/ad?id=123456789012345', uuid='u3')]
+        for name in ('cccccccc.jsonl', 'dddddddd.jsonl'):  # second file is a fork holding the same records
+            with open(os.path.join(home, 'projects', '-work-x', name), 'w', encoding='utf-8') as fh:
+                for r in recs:
+                    fh.write(json.dumps(r) + '\n')
+        out = os.path.join(self.tmp.name, 'shape.json')
+        self.assertEqual(run(['--home', home, '--out', out]).returncode, 0)
+        with open(out, encoding='utf-8') as fh:
+            d = json.load(fh)
+        self.assertEqual((d['scope']['sessions'], d['scope']['prompts'], d['scope']['duplicate_records_skipped']), (1, 2, 3))
+        self.assertEqual(d['session_shape']['context_compactions'], 1)
+        self.assertEqual(d['prompting']['vague_words'], {})  # vague words inside pasted material are not his
+        self.assertIn('id=123456789012345', json.dumps(d['samples']))  # ids in links are not phone numbers
 
     def test_no_samples_option(self):
         out = os.path.join(self.tmp.name, 'nosamples.json')

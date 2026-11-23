@@ -6,7 +6,7 @@ It reads your local Claude Code transcripts, computes numbers (how you brief, ho
 
 It works on your own usage, or, with their consent, on a teammate's.
 
-> **Status: early version.** The collector is covered by tests on synthetic transcripts in both the CLI and desktop-app formats. The full audit has been run once, on one person, on the macOS desktop app, with an earlier Czech version of these instructions; this English version's auditor and reviewer steps have not been run end to end yet. Windows, Linux, Python 3.8 and real CLI transcripts are untested. The rubric thresholds are provisional. Treat the level as a starting point for a conversation, not a verdict. Reports of what did not fit are welcome in the issues.
+> **Status: early version.** The collector is covered by tests on synthetic transcripts in both the CLI and desktop-app formats. The full audit has been run once, on one person, on the macOS desktop app, with an earlier Czech version of these instructions; the English version has been run end to end once on the same person, and that run's findings about unclear instructions are fixed here. Windows, Linux, Python 3.8 and real CLI transcripts are untested. The rubric thresholds are provisional. Treat the level as a starting point for a conversation, not a verdict. Reports of what did not fit are welcome in the issues.
 
 ## What you get
 
@@ -14,7 +14,7 @@ An excerpt in the shape of a real report. The person and the numbers are invente
 
 ```markdown
 # Claude usage audit: Alex
-14 sessions, 163 prompts · confidence: medium
+14 sessions, 163 prompts · sample size: medium
 Auditor: <model> · Reviewer: <model>
 
 ## Result
@@ -62,6 +62,8 @@ Any language works; the report comes back in the language you use. To update lat
 1. **Collect.** `scripts/collect.py` reads your transcripts and writes `audit-data.json`: numbers plus example prompts with secrets, e-mail addresses, phone numbers and your home path masked. It takes a couple of seconds.
 2. **Audit.** An auditor model scores eight areas (0–4 points each) using `references/rubric.md` and checks doubtful numbers against the transcripts with a few targeted looks.
 3. **Review.** A second, independent model reads only the short draft and challenges it: unsupported claims, wrong scores, wrong priorities.
+
+A full run with both subagents is not free: one measured run used about 180k tokens for the auditor and 130k for the reviewer. The collector alone costs nothing.
 4. **Report.** Level, score per area, at most seven findings with evidence, what the audit could not see, and what to measure next time.
 
 The eight areas: briefing · context and references · verifying results · model and mode for the task · use of tools · system and learning from mistakes · project hygiene · safety and cost.

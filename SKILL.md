@@ -21,11 +21,11 @@ Write the report in the language the person uses with you. The files in this ski
 
 Two roles: an **auditor**, who reads the data and writes the report, and a **reviewer**, who reads only the draft and challenges it. The reviewer must not share the auditor's context.
 
-- With subagents: run the auditor as a subagent on a strong, cost-efficient model and the reviewer as a separate subagent on the strongest model available. The reviewer reads little, so this stays cheap. Whichever role matches the model the session already runs on can be done in the session itself.
+- With subagents: run the auditor as a subagent on a strong, cost-efficient model and the reviewer as a separate subagent on the strongest model available. Whichever role matches the model the session already runs on can be done in the session itself, as long as the reviewer has not seen the auditor's working context.
 - With a single model: run the reviewer as a fresh subagent on that model.
 - Without subagents: do the review yourself as a separate pass against the checklist in step 5, and say in the report that no independent review took place.
 
-State in the report which models filled which role.
+State in the report which models filled which role. Before starting, tell the person that a full run with two subagents costs a few hundred thousand tokens (one measured run: about 180k for the auditor, 130k for the reviewer), so they can choose the single-pass variant instead.
 
 ## Workflow
 
@@ -55,11 +55,11 @@ Find out (ask, unless it is clear from the conversation or their CLAUDE.md): wha
 ### 4. Audit (auditor)
 1. Read `audit-data.json`, `references/rubric.md` and `references/report-template.md`.
 2. For each area write the observation from the data first, then the points.
-3. Verify doubtful hypotheses in the transcripts with at most five targeted looks (search by the `session` id from a sample; never read whole files). Above all: did a vague prompt really cost extra rounds? Are the "possible correction rounds" corrections of Claude's mistakes, or new requests?
-4. Look at one or two CLAUDE.md files and the list of skills for area 6.
+3. Verify doubtful hypotheses in the transcripts with at most five targeted looks. One look is one search across the transcripts or one bounded excerpt of one session; the `session` value in a sample is the transcript's file name without `.jsonl`. Never read whole files. Project folder names start with a dash, which breaks shell commands such as `ls` and `grep`: use Python, or prefix paths with `./`. Above all check: did a vague prompt really cost extra rounds? Are the "possible correction rounds" corrections of Claude's mistakes, or new requests? Is the "possible secret" sample a real secret?
+4. For area 6 look at one or two CLAUDE.md files and the list of skills. CLAUDE.md files already loaded into your context count; you do not need to re-read them from disk.
 5. Write the draft report to a file, following the template.
 
-Take numbers from the file; do not recompute them in your head. The collector's word lists are coarse (especially correction rounds, visual prompts and vague words), so never turn one into a finding without an example that confirms it.
+Take numbers from the file; do not recompute them in your head. You may quote from a transcript and use numbers you counted there yourself, but mark each one in the report as "from the transcripts, not checked by the reviewer", because the reviewer cannot see them. The data also includes the session the audit runs in and any earlier audit sessions; say so if they are a noticeable share. The collector's word lists are coarse (especially correction rounds, visual prompts and vague words), so never turn one into a finding without an example that confirms it.
 
 ### 5. Review (reviewer), one round
 The reviewer gets only the draft, `audit-data.json` and the rubric, with this brief:

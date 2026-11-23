@@ -18,13 +18,14 @@ Does Claude get to see what it needs?
 ## 3. Verifying results
 Do they know it is done before it goes out?
 - A session's first prompt is never counted as a correction, and the word match cannot tell a correction of Claude's mistake from a new request. Read the samples before scoring.
-- Data: `verification.*`, mainly `possible_correction_rounds_pct`, `prompts_with_criteria_or_proof_request_pct`, `sessions_with_3plus_corrections`; skills, hooks or rules for checking in `setup`; tests in the projects.
+- Data: `verification.*`, mainly `possible_correction_rounds_pct`, `prompts_with_criteria_or_proof_request_pct`, `sessions_with_3plus_corrections`; skills, hooks or rules for checking in `setup`. The collector does not look for tests in projects; check one project by hand if it matters.
 - 4: "done" criteria stated up front, proof with every result, correction rounds under 5%. 2: asks for a check now and then, correction rounds 10–15%. 0: finds errors only after hand-over, correction rounds above 20%.
 
 ## 4. Model and mode for the task
 - Data: `models` (share of responses and tokens), `tools.sessions_with_plan`, `sessions_with_subagent`, `slash_commands` (/model).
 - 4: the expensive model for hard problems, a cheap one for routine and automation, a plan for large unclear tasks. 2: nearly everything on one model, switches occasionally. 0: unaware a choice exists.
-- One model for everything is not automatically a fault (subscription, simplicity). Judge by whether it costs the person limits or time.
+- One model for everything is not automatically a fault (subscription, simplicity). Judge by whether it costs the person limits or time, and ask them if you cannot tell.
+- Do not assume which model is cheaper or stronger from its name. If you do not know the current price tiers, ask or look them up; otherwise score on behaviour (does the person ever choose?) and say the cost side was not assessed.
 
 ## 5. Use of tools
 - Data: `tools.skills_invoked`, `most_used`, `automated_messages` (scheduled tasks), `setup.skills`, `agents`, `commands`.
@@ -41,7 +42,9 @@ Do they know it is done before it goes out?
 - Do not demand git from people who do not write code (copy, analysis). A permanent folder and a description are enough.
 
 ## 8. Safety and cost
-- Data: `safety.prompts_with_secret`, `tools.permission_modes`, `models` (tokens), session length.
+- Data: `safety.prompts_with_secret` and the "possible secret (masked)" samples, `models` (tokens), `session_shape` (long sessions, context compactions).
+- Long sessions that mix unrelated tasks re-read their whole history on every turn; `session_shape.longest` and `context_compactions` are the evidence. Input tokens dwarf output tokens in any tool-heavy work, so that ratio alone proves nothing.
+- The permission mode (`tools.permission_modes`) is the person's own choice. Report it under "What the audit did not see" if relevant; do not score it.
 - 4: no secrets in chat, knows what things cost, keeps context short. 2: an isolated leak, or no view of spend. 0: passwords and keys in chat routinely.
 - Any secret in a prompt caps this area at 2 points and makes a finding of severity 3 or higher. Confirm on the masked sample that it is a real secret first; the pattern can misfire on long identifiers.
 
@@ -56,7 +59,9 @@ Do they know it is done before it goes out?
 | 6–11 | **D** | Mostly chats, the odd task |
 | 0–5 | **F** | Questions and answers only |
 
-Caps: Verifying results (3) at 0–1 points means **B** at most. Any area at 0 points means **A** at most. With "low" confidence give the level as an estimate with a range (for example "C to B").
+Score on what the samples confirm, not on the raw percentage: if only a third of the candidates hold up, use a third of the number and say so.
+
+Caps: Verifying results (3) at 0–1 points means **B** at most. Any area at 0 points means **A** at most. With a "low" `scope.sample_size` give the level as an estimate with a range (for example "C to B").
 
 ## Severity of a finding (0–4)
 0 not a problem · 1 cosmetic · 2 slows things down · 3 regularly costs time, money or quality · 4 a risk (leaked credentials, a mistake in front of people, lost data).
