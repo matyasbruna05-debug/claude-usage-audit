@@ -6,7 +6,7 @@ It reads your local Claude Code transcripts, computes numbers (how you brief, ho
 
 It works on your own usage, or, with their consent, on a teammate's.
 
-> **Status: early version.** The collector is covered by tests on synthetic transcripts in both the CLI and desktop-app formats, but the full audit has so far been validated on one person, on the macOS desktop app. The rubric thresholds are provisional. Treat the level as a starting point for a conversation, not a verdict. Reports of what did not fit are welcome in the issues.
+> **Status: early version.** The collector is covered by tests on synthetic transcripts in both the CLI and desktop-app formats. The full audit has been run once, on one person, on the macOS desktop app, with an earlier Czech version of these instructions; this English version's auditor and reviewer steps have not been run end to end yet. Windows, Linux, Python 3.8 and real CLI transcripts are untested. The rubric thresholds are provisional. Treat the level as a starting point for a conversation, not a verdict. Reports of what did not fit are welcome in the issues.
 
 ## What you get
 
@@ -14,22 +14,23 @@ An excerpt in the shape of a real report. The person and the numbers are invente
 
 ```markdown
 # Claude usage audit: Alex
-31 sessions, 412 prompts · confidence: good
+14 sessions, 163 prompts · confidence: medium
 Auditor: <model> · Reviewer: <model>
 
 ## Result
-**Level B** (19/32). You have a system (rules, skills, automation), but single prompts do not use it.
+**Level C** (14/32). You hand Claude real tasks and check the results, but every session starts from zero.
 Three steps with the largest effect:
-1. Attach a reference to every visual task and say what must not change → fewer "put it back" rounds
-2. End bigger tasks with "done when…" and ask for proof → fewer fixes after hand-over
-3. New topic = new session in the project folder → shorter context, lower spend
+1. Put the rules you keep repeating into a CLAUDE.md in the project → no more re-explaining the stack
+2. Move the nightly export checks to a cheaper model → the large model's limit lasts the week
+3. Commit after each working step → a bad change costs one undo, not an afternoon
 
 ## Findings
-### 1. Visual prompts without a reference cost extra rounds · severity 3
-- **Observation:** 40 visual prompts, a reference on 22% of them.
-- **Evidence:** "make it look more modern" → two prompts later: "why is this better than before?" → "revert the corners"
-- **Recommendation:** before → better: "The booking page feels crowded on mobile. Model it on [screenshot]:
-  large spacing, one strong heading. Keep the colours from the approved demo."
+### 1. The same instructions are typed again in every session · severity 3
+- **Observation:** 0 of 5 project folders has a CLAUDE.md; no memory files.
+- **Evidence:** "we use pnpm, not npm" appears in 6 of 14 sessions.
+- **Impact:** a wrong first attempt, then a correction, most times a session starts.
+- **Recommendation:** ask Claude once: "write a CLAUDE.md for this project with the stack, the commands and the rules I gave you today".
+- **Effort:** small
 ```
 
 ## Install
@@ -70,6 +71,7 @@ The eight areas: briefing · context and references · verifying results · mode
 - The collector is **read-only** and makes **no network requests**. It is one standard-library Python file; read it before you run it.
 - Your transcripts are read on your machine. What the auditor model sees is `audit-data.json` and a few targeted looks into transcripts, inside your own Claude Code session, under the same terms as the rest of your work there.
 - To audit someone else, the most private route is that they run it themselves. They can also send only `audit-data.json`, with `--samples 0` if they do not want to share any prompt text. Never audit someone without their knowledge.
+- Even with `--samples 0`, `audit-data.json` contains project folder paths (home directory shown as `~`), the names of installed skills, agents and commands, and tool and connector names. Look through the file before you send it to anyone.
 
 ## What it does not see
 

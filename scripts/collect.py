@@ -81,7 +81,7 @@ VAGUE = merged('vague')
 FIX = re.compile(alt('fix'), re.I)
 DONE = re.compile(alt('done_criteria'), re.I)
 VISUAL = re.compile(alt('visual'), re.I)
-PING = re.compile(r'^\W*' + alt('status_ping') + r'\b.{0,25}\??\s*$', re.I)
+PING = re.compile(r'^\W*' + alt('status_ping') + r'(?:\W*|\b.*\?\s*)$', re.I)  # the phrase alone, or a question
 APPROVAL = re.compile(r'^\W*(?:' + '|'.join(re.escape(x) for x in merged('approval')) + r')(?:\W+(?:' +
                       '|'.join(re.escape(x) for x in merged('approval')) + r'))*\W*$', re.I)
 
@@ -221,7 +221,8 @@ for f in files:
             if t.startswith('<') or t.startswith('This session is being continued') or t.startswith('Caveat'):
                 continue
             p = {'text': t, 'len': len(t), 'img': img, 'ref': bool(REF.search(t)) or img, 'secret': bool(SECRET.search(t)),
-                 'vague': [w for w in VAGUE if word_hit(t, w)], 'fix': bool(FIX.search(t)), 'ping': bool(PING.match(t)),
+                 'vague': [w for w in VAGUE if word_hit(t, w)], 'fix': bool(sp) and bool(FIX.search(t)),
+                 'ping': len(t) <= 40 and bool(PING.match(t)),
                  'done': bool(DONE.search(t)), 'visual': bool(VISUAL.search(t)),
                  'approval': len(t) <= 60 and bool(APPROVAL.match(t)), 'tools_after': 0, 'session': s['id'], '_base': s['tools']}
             secret_prompts += p['secret']

@@ -7,7 +7,7 @@ Points in general: **0** absent · **1** rare, accidental · **2** sometimes, no
 ## 1. Briefing
 Does Claude get it right the first time?
 - Data: `prompting.median_chars`, `under_40_chars_pct`, `big_tasks_briefed_under_60_chars_pct`, `with_vague_word_pct`, `vague_words`; samples "vague word" and "short prompt, big task".
-- A short prompt is not a fault in itself. The fault is a short or vague prompt for a big task whose result depends on something only the person knows. Plain approvals ("yes, continue") are already excluded from these numbers; check the samples for others the collector missed.
+- A short prompt is not a fault in itself. The fault is a short or vague prompt for a big task whose result depends on something only the person knows. Only the plainest approvals ("yes", "continue") are excluded from these numbers. Go-aheads after an agreed plan ("start building") usually still count as short prompts for big tasks, so read the samples and treat that percentage as an upper bound.
 - 4: for big tasks states the goal, the audience, what must not change and when to stop; vague words are rare. 2: mixed; around a third of big tasks briefed in under 60 characters. 0: one-word prompts even for big tasks, vague words routine.
 
 ## 2. Context and references
@@ -17,6 +17,7 @@ Does Claude get to see what it needs?
 
 ## 3. Verifying results
 Do they know it is done before it goes out?
+- A session's first prompt is never counted as a correction, and the word match cannot tell a correction of Claude's mistake from a new request. Read the samples before scoring.
 - Data: `verification.*`, mainly `possible_correction_rounds_pct`, `prompts_with_criteria_or_proof_request_pct`, `sessions_with_3plus_corrections`; skills, hooks or rules for checking in `setup`; tests in the projects.
 - 4: "done" criteria stated up front, proof with every result, correction rounds under 5%. 2: asks for a check now and then, correction rounds 10–15%. 0: finds errors only after hand-over, correction rounds above 20%.
 

@@ -36,6 +36,20 @@ CLI_SESSION = [
     'this line is not json',
 ]
 
+# Ordinary task prompts that must NOT trip the coarse signals.
+PLAIN_PROMPTS = [
+    'fix the login bug in auth.py',
+    'update the README with the new install steps',
+    'look at the logs and tell me why the job failed',
+    'design the API for the billing service',
+    'add a status endpoint that returns the build number',
+    'write tests for the done callback',
+    'rename the progress module to tracker',
+    'check the coding style guide and apply it',
+    'is the migration ready to run on staging',
+    'make the report generator faster',
+]
+
 DESKTOP_SESSION = [
     user('Build the booking form. Done when a screenshot shows it working on mobile, see ./mock.png', cwd='/tmp/scratch-1',
          promptSource='sdk', origin={'kind': 'human'}, turnOrigin='human', permissionMode='plan'),
@@ -100,6 +114,23 @@ class CollectTest(unittest.TestCase):
         self.assertGreater(self.d['verification']['possible_correction_rounds_pct'], 0)
         self.assertGreater(self.d['verification']['prompts_with_criteria_or_proof_request_pct'], 0)
         self.assertGreater(self.d['verification']['status_pings_pct'], 0)
+
+    def test_plain_task_prompts_trip_no_signal(self):
+        home = os.path.join(self.tmp.name, 'plain')
+        os.makedirs(os.path.join(home, 'projects', '-work-api'))
+        with open(os.path.join(home, 'projects', '-work-api', 'bbbbbbbb.jsonl'), 'w', encoding='utf-8') as fh:
+            for i, text in enumerate(PLAIN_PROMPTS):
+                fh.write(json.dumps(user(text)) + '\n' + json.dumps(assistant('p%d' % i, 'model-big', ['Edit'])) + '\n')
+        out = os.path.join(self.tmp.name, 'plain.json')
+        self.assertEqual(run(['--home', home, '--out', out, '--lang', 'en']).returncode, 0)
+        with open(out, encoding='utf-8') as fh:
+            d = json.load(fh)
+        self.assertEqual(d['scope']['prompts'], len(PLAIN_PROMPTS))
+        self.assertEqual(d['verification']['possible_correction_rounds_pct'], 0)
+        self.assertEqual(d['verification']['status_pings_pct'], 0)
+        self.assertEqual(d['prompting']['visual_prompts'], 0)
+        self.assertEqual(d['prompting']['vague_words'], {})
+        self.assertEqual(d['prompting']['approvals_excluded'], 0)
 
     def test_models_and_tools(self):
         self.assertEqual(self.d['models']['model-big']['responses'], 3)  # m1 once, m2, d1
