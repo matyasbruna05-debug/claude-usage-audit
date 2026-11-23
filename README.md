@@ -1,4 +1,4 @@
-# claude-usage-audit
+# improve-at-claude
 
 A skill for Claude Code that audits **how you work with Claude** and tells you what to change.
 
@@ -40,13 +40,13 @@ Needs Claude Code and Python 3.8 or newer. No other dependencies.
 macOS / Linux:
 
 ```bash
-git clone https://github.com/matyasbruna05-debug/claude-usage-audit ~/.claude/skills/claude-usage-audit
+git clone https://github.com/matyasbruna05-debug/improve-at-claude ~/.claude/skills/improve-at-claude
 ```
 
 Windows (PowerShell):
 
 ```powershell
-git clone https://github.com/matyasbruna05-debug/claude-usage-audit "$env:USERPROFILE\.claude\skills\claude-usage-audit"
+git clone https://github.com/matyasbruna05-debug/improve-at-claude "$env:USERPROFILE\.claude\skills\improve-at-claude"
 ```
 
 Then start a new Claude Code session and say:
